@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="780" height="160" viewBox="0 0 780 160" fill="none">
+  <title>タイムトーク</title>
+  <g transform="translate(24 32) scale(1.5)">
+    <path d="M27 12H21C14.373 12 9 17.373 9 24V32C9 38.627 14.373 44 21 44H27" stroke="#1d1d1f" stroke-width="8" stroke-linecap="round"/>
+    <path d="M37 20H43C49.627 20 55 25.373 55 32V40C55 46.627 49.627 52 43 52H37" stroke="#0071e3" stroke-width="8" stroke-linecap="round"/>
+  </g>
+  <text x="145" y="108" fill="#1d1d1f" font-family="-apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic Pro', Meiryo, sans-serif" font-size="76" font-weight="700" letter-spacing="-3">タイムトーク</text>
+</svg>

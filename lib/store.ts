@@ -1,4 +1,4 @@
-import type { Post } from "./types";
+import { parseAccess, type Post } from "./types";
 
 // KV レイアウト
 //   post:<id>        -> Post (JSON)
@@ -55,7 +55,7 @@ export async function putPosts(posts: Post[], reset = false): Promise<number> {
   const all = reset ? [] : await readIndex(store, "index:all");
   const byAuthor = new Map<string, string[]>();
   for (const p of posts) {
-    await store.put(`post:${p.id}`, JSON.stringify(p));
+    await store.put(`post:${p.id}`, JSON.stringify({ ...p, ...parseAccess(p), locked: undefined }));
     if (!all.includes(p.id)) all.push(p.id);
     if (!byAuthor.has(p.author)) {
       byAuthor.set(p.author, reset ? [] : await readIndex(store, `index:${p.author}`));
@@ -77,12 +77,16 @@ export async function putPost(post: Post): Promise<Post> {
 
 export async function getPost(id: string): Promise<Post | null> {
   const store = await kv();
+  if (!(await readIndex(store, "index:all")).includes(id)) return null;
   return ((await store.get(`post:${id}`, "json")) as Post | null) ?? null;
 }
 
 export async function listPosts(author?: string): Promise<Post[]> {
   const store = await kv();
-  const ids = await readIndex(store, author ? `index:${author}` : "index:all");
+  // reset後に残る古い作者別インデックスを履歴へ混ぜない。
+  const all = await readIndex(store, "index:all");
+  const active = new Set(all);
+  const ids = author ? (await readIndex(store, `index:${author}`)).filter((id) => active.has(id)) : all;
   const posts = await Promise.all(ids.map((id) => store.get(`post:${id}`, "json")));
   return (posts.filter(Boolean) as Post[]).sort(
     (a, b) => new Date(a.at).getTime() - new Date(b.at).getTime(),
