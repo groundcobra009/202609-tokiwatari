@@ -5,6 +5,7 @@
 - 指揮・記録: ai-company（ポインタ: company/projects/202609-tokiwatari.md）
 
 **この案件の北極星は [GOAL.md](GOAL.md)。** Issueを切る前・設計を提案する前に必ず読む。
+評価の基準は [RUBRIC.md](RUBRIC.md)（公式5観点・同点時は「動くか」が最優先）。引き継ぎは [docs/HANDOVER.md](docs/HANDOVER.md)、Codex への依頼は [docs/codex-handoff.md](docs/codex-handoff.md)。
 企画書は [docs/proposal.md](docs/proposal.md)、ピッチは [docs/pitch.md](docs/pitch.md)、デモ台本は [docs/demo-script.md](docs/demo-script.md)。
 
 ## ローカルで動かす

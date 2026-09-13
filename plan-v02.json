@@ -1,0 +1,10 @@
+{"issue": 3, "repo": "groundcobra009/202609-tokiwatari",
+ "todos": [
+  {"key": "v1", "title": "visibility/unlockAt: Post型・API保存・timeline の viewer 別フィルタ（locked 伏字）", "description": "docs/codex-handoff.md 手順1-1〜1-3", "deps": []},
+  {"key": "v2", "title": "公開範囲UI: セレクト＋「◯年後に公開」＋鍵付きカード表示", "description": "手順1-4", "deps": ["v1"]},
+  {"key": "v3", "title": "smoke に公開範囲2ケース追加・種に鍵付き投稿追加", "description": "手順1-5・1-6", "deps": ["v1"]},
+  {"key": "v4", "title": "日替わりテーマ: lib/themes.ts・GET /api/theme・画面カード", "description": "手順2", "deps": ["v2"]},
+  {"key": "v5", "title": "Google ログイン: WorkOS AuthKit（環境変数なしはゲストモード）", "description": "手順3。Workers で動かなければ停止して報告", "deps": ["v4"]},
+  {"key": "v7", "title": "「過去の発信を取り込む」入口のUI（準備中モーダルのみ・実装しない・DEC-006）", "description": "codex-handoff 手順3b", "deps": ["v2"]},
+  {"key": "v6", "title": "記録: CHANGELOG・DECISIONS（DEC-007〜009）・README API表", "description": "手順4", "deps": ["v3", "v4"]}
+ ]}
