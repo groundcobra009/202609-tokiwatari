@@ -113,3 +113,16 @@
    cd /Users/keitaro_aigc/002project/202609-tokiwatari && codex exec --sandbox workspace-write "[T159] docs/codex-handoff.md を読んで手順1から実装。ゴールコマンド npm run check 成功まで。不明点は停止して報告"
    ```
 5. Claude側がゴールコマンドを再実行して検証 → コミット（`Refs #3`）・PR・記録
+
+
+## 最新のユーザー合意と共同開発への引き継ぎ（2026-09-13）
+
+本節は上記の初回依頼後に変更された合意を記録する。
+
+- サービス名は「タイムトーク」。既存のリポジトリ名・Worker名・ドメインは維持。
+- ユーザーがCloudflareデプロイを明示的に依頼し、公開済み。Claude APIキーはユーザーが管理画面で設定。キーの値は取得・記録していない。
+- ユーザーが共同開発のため、まとまりごとのgit commit / pushを明示的に許可。共有ブランチは `codex/issue-3-timetalk`、既存Issueは #3。`gh` を使わず、Issue/PR操作はClaude側の担当を維持する。
+- 実装コミット `6ce52fa` をリモートへ共有済み。今回の記録も同ブランチで共有する。mainへのマージは未実施。
+- 再検証: `npm run check` exit 0、mock / guest、smoke 10群成功。実AIの過去・未来応答は `docs/live-eval.json` に別途保存。Googleログインの実アカウント動作は未検証。取り込みは準備中モーダルのみ。
+- 当日の公式5観点に沿う自己評価は22/25。旧16〜18点は別尺度であり、現在点として扱わない。根拠・残る差は `docs/self-eval.md`、基準は `RUBRIC.md`、発表用説明は `docs/pitch.md` を参照。
+- 継続タスクの正本はBeads。満点を目指す改善 `tw-wel` は未完了のまま。今回の共有は `tw-tv0` で追跡する。
