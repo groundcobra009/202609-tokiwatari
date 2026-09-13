@@ -1,5 +1,7 @@
 # タイムトーク（Time Talk）— 思考が時を超えるSNS
 
+**スライド・動画制作担当の方へ： [SLIDES_HANDOFF.md](SLIDES_HANDOFF.md) を最初に読んでください。** 一次審査の5観点、画面/ノート/付録の内容、実AIの証拠、収録手順をまとめています。最新共有ブランチは `codex/issue-3-timetalk` です。
+
 - 案件ID: 202609-tokiwatari
 - 開始日: 2026-09-13（AI木曜会 × AGIラボ 合同AIハッカソン・チーム16）
 - 指揮・記録: ai-company（ポインタ: company/projects/202609-tokiwatari.md）
