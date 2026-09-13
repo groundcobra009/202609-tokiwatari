@@ -1,0 +1,11 @@
+{"issue": 1, "repo": "groundcobra009/202609-tokiwatari",
+ "todos": [
+  {"key": "t1", "title": "scaffold: Next.js＋OpenNext＋wrangler.jsonc（custom_domain・KV binding）・npm run check の骨組み", "description": "001Area/keitaro-materials の wrangler.jsonc を型に。tokiwatari.keitro-aigc.com・workers_dev=false・KV binding POSTS。package.json に check=typecheck+build+smoke。", "deps": []},
+  {"key": "t2", "title": "data: KVスキーマと seed ローダー（JSON→KV）", "description": "post: id/author/text/at(時間座標 ISO)/kind(past|now|future)/replyTo/aiGenerated。scripts/seed.mjs と POST /api/seed。", "deps": ["t1"]},
+  {"key": "t3", "title": "timeline: 過去⇄未来にスクロールできるタイムラインUI（今の線・年ジャンプ）", "description": "GET /api/timeline?from&to。「今」の線を中央に、下=過去・上=未来。年ジャンプのナビ。", "deps": ["t2"]},
+  {"key": "t4", "title": "past-reply: 過去投稿への返信→Claude APIが当時の人格で返答", "description": "POST /api/reply。対象投稿の前後（±90日）の同一authorの投稿をsystemに渡し、当時の本人として返答。返答は aiGenerated=true で保存・表示。", "deps": ["t3"]},
+  {"key": "t5", "title": "future: 未来宛て投稿＋AI推定「未来の自分」の返信", "description": "未来日付の投稿を置く。全投稿から未来の本人を推定して返答（AI推定を画面で明示）。", "deps": ["t4"]},
+  {"key": "t6", "title": "seed-keitaro: @keitaro_aigc のX投稿を取得→seed/keitaro.json（未確定・手書き種にフォールバック）", "description": "DEC-002。xapi MCPで取得できなければ手書き種3人分に切替。", "deps": ["t2"]},
+  {"key": "t7", "title": "smoke: scripts/smoke.mjs と npm run check（ゴールコマンド）", "description": "devサーバーに ①種投入 ②過去返信→AI返答JSON ③未来投稿が未来領域に載る の3点をHTTPで検証。", "deps": ["t5"]},
+  {"key": "t8", "title": "pitch: docs/pitch.md（3枚相当）とdocs/demo-script.md", "description": "GOAL §3 の完成状態6。企画書 docs/proposal.md をもとに。", "deps": ["t3"]}
+ ]}
