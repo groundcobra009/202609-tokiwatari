@@ -1,0 +1,4 @@
+# ローカル開発用。コピーして .dev.vars を作る（.dev.vars は gitignore 済み）
+# ANTHROPIC_API_KEY=sk-ant-...
+# 未設定または MOCK_AI=1 のときは決定的なモック返答になる
+# MOCK_AI=1
