@@ -36,8 +36,7 @@ export default function Timeline() {
 
   const load = useCallback(async () => {
     try {
-      const q = filter ? `?author=${encodeURIComponent(filter)}` : "";
-      const res = await fetch(`/api/timeline${q}`, { cache: "no-store" });
+      const res = await fetch("/api/timeline", { cache: "no-store" });
       const data = (await res.json()) as { posts: Post[]; now: string; error?: string };
       if (!res.ok) throw new Error(data.error ?? res.statusText);
       setPosts(data.posts);
@@ -48,7 +47,7 @@ export default function Timeline() {
     } finally {
       setLoading(false);
     }
-  }, [filter]);
+  }, []);
 
   useEffect(() => { load(); }, [load]);
 
@@ -72,6 +71,7 @@ export default function Timeline() {
     const threads = new Map<string, Post[]>();
     const roots: Post[] = [];
     for (const p of posts) {
+      if (filter && p.author !== filter && !p.replyTo) continue;
       if (p.replyTo) {
         if (!threads.has(p.replyTo)) threads.set(p.replyTo, []);
         threads.get(p.replyTo)!.push(p);
@@ -85,12 +85,16 @@ export default function Timeline() {
       past: desc.filter((p) => new Date(p.at).getTime() <= nowT),
       threads,
     };
-  }, [posts, now]);
+  }, [posts, now, filter]);
 
   const yearsPresent = useMemo(() => new Set(posts.map((p) => yearOf(p.at))), [posts]);
   const nowYear = yearOf(now);
 
   const jump = (year: number) => {
+    if (year === nowYear) {
+      nowRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
     const el = document.getElementById(`year-${year}`) ?? nowRef.current;
     el?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
@@ -118,7 +122,7 @@ export default function Timeline() {
             onClick={() => jump(y)}
             style={{ opacity: yearsPresent.has(y) || y === nowYear ? 1 : 0.4 }}
           >
-            {y}
+            {y === nowYear ? `${y} 今` : y}
           </button>
         ))}
         <div className="dir">↓ 過去</div>
