@@ -254,5 +254,38 @@
     "text": "AIに台本の下書きを書かせて、そこから自分の言葉に直していく流れが定着してきた。ゼロから書く苦しさが減った分、直感で仕上げに集中できる。",
     "at": "2026-08-25T20:10:00+09:00",
     "kind": "past"
+  },
+  {
+    "id": "seed-keitaro-locked-2036",
+    "author": "keitaro",
+    "authorName": "けいたろう",
+    "text": "今はまだ言葉にできない挑戦の記録。10年後、この迷いを次の世代に渡したい。",
+    "at": "2026-09-13T09:00:00+09:00",
+    "kind": "now",
+    "aiGenerated": false,
+    "visibility": "public",
+    "unlockAt": "2036-09-13T00:00:00+09:00"
+  },
+  {
+    "id": "seed-shunta-locked-2036",
+    "author": "shunta",
+    "authorName": "しゅんた",
+    "text": "今はまだ言葉にできない挑戦の記録。10年後、この迷いを次の世代に渡したい。",
+    "at": "2026-09-13T09:00:00+09:00",
+    "kind": "now",
+    "aiGenerated": false,
+    "visibility": "public",
+    "unlockAt": "2036-09-13T00:00:00+09:00"
+  },
+  {
+    "id": "seed-yakan-locked-2036",
+    "author": "yakan",
+    "authorName": "やかん",
+    "text": "今はまだ言葉にできない挑戦の記録。10年後、この迷いを次の世代に渡したい。",
+    "at": "2026-09-13T09:00:00+09:00",
+    "kind": "now",
+    "aiGenerated": false,
+    "visibility": "public",
+    "unlockAt": "2036-09-13T00:00:00+09:00"
   }
 ]
