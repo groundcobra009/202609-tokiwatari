@@ -1,0 +1,27 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "tokiwatari",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-08-19",
+  "compatibility_flags": ["nodejs_compat"],
+
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+
+  // workers.dev は使わず、keitro-aigc.com のサブドメインに固定する
+  "workers_dev": false,
+  "routes": [
+    { "pattern": "tokiwatari.keitro-aigc.com", "custom_domain": true }
+  ],
+
+  // 投稿データ（post:<id> / index:all / index:<author>）
+  "kv_namespaces": [
+    { "binding": "POSTS", "id": "dc0552b354de4e56b599a73dcb622d4d" }
+  ],
+
+  // ANTHROPIC_API_KEY は `wrangler secret put ANTHROPIC_API_KEY` で登録する（vars に書かない）
+  // ローカルは .dev.vars（gitignore済み）
+  "observability": { "enabled": true }
+}

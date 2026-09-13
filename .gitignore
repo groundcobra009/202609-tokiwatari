@@ -15,3 +15,15 @@ _archive/
 *.db
 .beads-credential-key
 .beads/proxieddb/
+
+# Next.js / OpenNext / wrangler
+.next/
+.open-next/
+.wrangler/
+*.tsbuildinfo
+next-env.d.ts
+
+# ローカルシークレット（wrangler）
+.dev.vars
+.dev.vars.*
+!.dev.vars.example

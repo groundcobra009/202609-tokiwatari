@@ -1,0 +1,109 @@
+import Anthropic from "@anthropic-ai/sdk";
+import type { AiMode, Post } from "./types";
+import { getEnv } from "./store";
+
+const DEFAULT_MODEL = "claude-sonnet-5";
+
+async function resolveAi(): Promise<{ mode: AiMode; apiKey?: string; model: string }> {
+  const env = await getEnv();
+  const pick = (k: string) => (env[k] as string | undefined) ?? process.env[k];
+  const apiKey = pick("ANTHROPIC_API_KEY");
+  const model = pick("ANTHROPIC_MODEL") ?? DEFAULT_MODEL;
+  const forceMock = pick("MOCK_AI") === "1";
+  if (forceMock || !apiKey) return { mode: "mock", model };
+  return { mode: "live", apiKey, model };
+}
+
+function ym(at: string): string {
+  const d = new Date(at);
+  return new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", year: "numeric", month: "long" }).format(d);
+}
+function year(at: string): number {
+  return Number(new Intl.DateTimeFormat("en", { timeZone: "Asia/Tokyo", year: "numeric" }).format(new Date(at)));
+}
+function ymd(at: string): string {
+  return new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", year: "numeric", month: "long", day: "numeric" }).format(new Date(at));
+}
+
+function formatPosts(posts: Post[]): string {
+  return posts.map((p) => `- [${ymd(p.at)}] ${p.text}`).join("\n");
+}
+
+async function callClaude(apiKey: string, model: string, system: string, user: string): Promise<string> {
+  const client = new Anthropic({ apiKey });
+  const res = await client.messages.create({
+    model,
+    max_tokens: 400,
+    system,
+    messages: [{ role: "user", content: user }],
+  });
+  const text = res.content
+    .filter((b): b is Anthropic.TextBlock => b.type === "text")
+    .map((b) => b.text)
+    .join("")
+    .trim();
+  if (!text) throw new Error("Claude API から空の応答");
+  return text;
+}
+
+/** 過去の投稿への返信: 当時の本人（AI再現） */
+export async function generatePastReply(args: {
+  target: Post;
+  context: Post[];
+  userText: string;
+}): Promise<{ text: string; mode: AiMode }> {
+  const { target, context, userText } = args;
+  const ai = await resolveAi();
+  const when = ym(target.at);
+
+  if (ai.mode === "mock") {
+    const hint = context.find((p) => p.id !== target.id)?.text.slice(0, 24) ?? target.text.slice(0, 24);
+    const text = `【モック返答】${when}の${target.authorName}です。「${userText.slice(0, 40)}」と聞かれても、いまの私にはこの先のことは分かりません。ただ、このころ「${hint}…」と書いていた気持ちは本物で、この先どうなるかは分からないけれど、まずは目の前のことを続けてみるつもりです。`;
+    return { text, mode: "mock" };
+  }
+
+  const system = [
+    `あなたは${when}時点の${target.authorName}（@${target.author}）本人です。`,
+    `あなたが知っているのは、以下に示す当時の投稿（前後の思考）だけです。それ以降に起きたことは一切知りません。未来の出来事・製品・流行を語らないでください。`,
+    `当時の口調・語彙・関心のまま、SNSの返信として120〜220字で日本語で返してください。前置きや説明はいらず、本人の言葉だけを返します。`,
+    ``,
+    `# 返信先（あなた自身の投稿・${ymd(target.at)}）`,
+    target.text,
+    ``,
+    `# 当時のあなたの投稿（前後の思考）`,
+    formatPosts(context),
+  ].join("\n");
+  const user = `（${ymd(new Date().toISOString())}の誰かから、この投稿への返信が届きました。あなたは相手が未来から来たことを知りません）\n\n${userText}`;
+  const text = await callClaude(ai.apiKey!, ai.model, system, user);
+  return { text, mode: "live" };
+}
+
+/** 未来宛て投稿への返信: 未来の自分（AI推定） */
+export async function generateFutureReply(args: {
+  post: Post;
+  history: Post[];
+}): Promise<{ text: string; mode: AiMode }> {
+  const { post, history } = args;
+  const ai = await resolveAi();
+  const fy = year(post.at);
+  const ny = year(new Date().toISOString());
+
+  if (ai.mode === "mock") {
+    const first = history[0]?.text.slice(0, 20) ?? "";
+    const last = history[history.length - 1]?.text.slice(0, 20) ?? "";
+    const text = `【モック返答】${fy}年の${post.authorName}より。「${post.text.slice(0, 40)}」を受け取りました。${ny}年のあなたが「${last}…」と書いていた続きを、こちらではまだ続けています。「${first}…」から始まった線は、思ったより遠くまで伸びました。焦らなくて大丈夫。`;
+    return { text, mode: "mock" };
+  }
+
+  const system = [
+    `あなたは${fy}年の${post.authorName}（@${post.author}）です。これは、本人のこれまでの投稿全体から推定した「${fy - ny}年後の本人」であり、確定した未来ではありません。`,
+    `以下の投稿履歴から、本人の関心の推移・価値観・口調・迷いのパターンを読み取り、その延長線上にある${fy}年の本人として、${ny}年の自分から届いた投稿に返信してください。`,
+    `具体的で、しかし断定しすぎない（「たぶん」「こちらでは」などの含みを持たせる）。過去の投稿の言葉を1つ引用して、線がつながっている感じを出す。日本語・120〜240字・SNSの返信として。前置きや説明はいらない。`,
+    ``,
+    `# これまでの投稿履歴（古い順）`,
+    formatPosts(history),
+  ].join("\n");
+  const user = `（${ymd(new Date().toISOString())}のあなたからの投稿。宛先は${ymd(post.at)}）\n\n${post.text}`;
+  const text = await callClaude(ai.apiKey!, ai.model, system, user);
+  return { text, mode: "live" };
+}
