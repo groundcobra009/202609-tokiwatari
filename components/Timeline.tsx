@@ -400,6 +400,7 @@ function FutureComposer(props: { todayRequest: number; futureRequest: number; in
   const [date, setDate] = useState(props.initialDate);
   useEffect(() => { if (props.futureRequest) setDate(props.initialDate); }, [props.futureRequest, props.initialDate]);
   useEffect(() => { if (props.todayRequest) setDate(new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date())); }, [props.todayRequest]);
+  const isFutureDate = Date.parse(`${date}T09:00:00+09:00`) > Date.now();
   const { text, setText } = props;
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -442,8 +443,8 @@ function FutureComposer(props: { todayRequest: number; futureRequest: number; in
           {[1, 3, 5, 10].map((y) => <option key={y} value={y}>{y}年後に公開</option>)}
         </select></label>
         <label>宛先の日付: <input type="date" value={date} onChange={(e) => setDate(e.target.value)} disabled={busy} /></label>
-        <button className="primary" type="submit" disabled={busy || !text.trim()}>{busy ? "未来の自分を推定中…" : "この日時に投稿"}</button>
-        {busy && <span className="tw-thinking">{yearOf(`${date}T00:00:00+09:00`)}年の{props.meName}から返事を待っています</span>}
+        <button className="primary" type="submit" disabled={busy || !text.trim()}>{busy ? (isFutureDate ? "未来の自分を推定中…" : "記録を保存中…") : "この日時に投稿"}</button>
+        {busy && isFutureDate && <span className="tw-thinking">{yearOf(`${date}T00:00:00+09:00`)}年の{props.meName}から返事を待っています</span>}
         {err && <span className="tw-error" role="alert">{err}</span>}
       </div>
     </form>
