@@ -11,6 +11,8 @@ export interface Post {
   kind: PostKind;
   replyTo?: string;     // スレッド親の id
   aiGenerated: boolean; // AI再現・AI推定の返答なら true
+  aiMode?: AiMode;
+  sourcePostIds?: string[]; // 生成時にAIへ渡した記録。引用の保証ではない
   visibility: Visibility;
   unlockAt?: string;
   locked?: boolean; // 応答時のみ。保存しない
@@ -56,5 +58,5 @@ export function forViewer(post: Post, viewer = "", now = Date.now()): Post {
   const { locked: _locked, ...stored } = post;
   return canRead(post, viewer, now)
     ? { ...stored, visibility: post.visibility ?? "public" }
-    : { ...stored, visibility: post.visibility ?? "public", text: "", locked: true };
+    : { ...stored, visibility: post.visibility ?? "public", text: "", sourcePostIds: undefined, locked: true };
 }

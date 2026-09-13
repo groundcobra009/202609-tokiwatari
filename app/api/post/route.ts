@@ -70,6 +70,8 @@ export const POST = withIdentity(async (req, user) => {
     kind: "future",
     replyTo: post.id,
     aiGenerated: true,
+    aiMode: generated.mode,
+    sourcePostIds: history.map((p) => p.id),
     createdAt: new Date().toISOString(),
   };
   await putPost(aiReply);

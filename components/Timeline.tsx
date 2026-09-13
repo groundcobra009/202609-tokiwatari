@@ -6,6 +6,8 @@ import ThemeCard from "./ThemeCard";
 import type { Identity } from "@/lib/auth";
 import type { Post, Visibility } from "@/lib/types";
 
+const SHARED_QUESTION = "新しいことを始めるか迷っている。最初の一歩をどう決めたらいい？";
+
 const AUTHORS_FALLBACK = [{ author: "keitaro", authorName: "けいたろう" }];
 
 function yearOf(at: string): number {
@@ -38,6 +40,10 @@ export default function Timeline({ initialNow }: { initialNow: string }) {
   viewerRef.current = me;
   const [filter, setFilter] = useState<string>("");
   const [feed, setFeed] = useState<"past" | "future" | "all">("past");
+  const [todayRequest, setTodayRequest] = useState(0);
+  const [futureRequest, setFutureRequest] = useState(0);
+  const [comparison, setComparison] = useState<{ past?: Post; future?: Post }>({});
+  const [guidedPost, setGuidedPost] = useState<{ id: string; request: number } | null>(null);
   const [lastMode, setLastMode] = useState<Mode>(null);
   const nowRef = useRef<HTMLDivElement>(null);
 
@@ -111,26 +117,42 @@ export default function Timeline({ initialNow }: { initialNow: string }) {
     }, 50);
   };
 
+  const revealPost = (post: Post) => {
+    setFilter("");
+    setFeed(Date.parse(post.at) > Date.parse(now) ? "future" : "past");
+    setTimeout(() => document.getElementById(`post-${post.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
+  };
+  const startPast = () => {
+    const candidates = posts.filter((p) => !p.replyTo && !p.aiGenerated && !p.locked && Date.parse(p.at) <= Date.parse(now));
+    const own = candidates.filter((p) => p.author === me);
+    const target = own.find((p) => p.id === "keitaro-2023-02") ?? own[0] ?? candidates.find((p) => p.id === "keitaro-2023-02") ?? candidates[0];
+    if (target) { setGuidedPost((prev) => ({ id: target.id, request: (prev?.request ?? 0) + 1 })); revealPost(target); }
+  };
+
   const onReplied = (human: Post, ai: Post, mode: Mode) => {
     if (human.author !== viewerRef.current) return;
     setPosts((prev) => [...prev, human, ai]);
+    if (human.text === SHARED_QUESTION && ai.author === viewerRef.current) setComparison((prev) => ({ ...prev, past: ai }));
     setLastMode(mode);
   };
   const onPosted = (post: Post, ai: Post | null, mode: Mode) => {
     if (post.author !== viewerRef.current) return;
     setPosts((prev) => (ai ? [...prev, post, ai] : [...prev, post]));
     setLastMode(mode);
+    if (post.text === SHARED_QUESTION && ai) setComparison((prev) => ({ ...prev, future: ai }));
     setFilter("");
     setFeed(Date.parse(post.at) > Date.parse(now) ? "future" : "past");
     setTimeout(() => document.getElementById(`post-${post.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
   };
+
+  const pairReady = comparison.past?.author === me && comparison.future?.author === me;
 
   return (
     <>
     <header className="tw-header">
       <a href="#welcome" className="tw-brand"><img className="tw-logo" src="/timetalk-mark.svg" alt="" width={36} height={36} />タイムトーク<span className="tw-wordmark">Time Talk</span></a>
       <span className="tw-header-note">思考が時を超えるSNS</span>
-      <button className="tw-header-action" onClick={() => nowRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}>思いを書く</button>
+      <button className="tw-header-action" onClick={() => pairReady ? document.getElementById("compare-replies")?.scrollIntoView({ behavior: "smooth", block: "center" }) : nowRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}>{pairReady ? "返事を比べる" : "思いを書く"}</button>
     </header>
     <div className="tw-shell">
       <nav className="tw-nav" aria-label="年ジャンプ">
@@ -152,8 +174,29 @@ export default function Timeline({ initialNow }: { initialNow: string }) {
 
       <main className="tw-main">
         <section className="tw-welcome" id="welcome">
-          <h1>ホーム</h1>
-          <p className="tw-intro">過去の自分と話す。未来の視点で考える。</p>
+          <h1>迷ったとき、時間を超えて自分と話す。</h1>
+          <p className="tw-intro">新しい一歩に迷うあなたへ。昔の記録から大切にしていたことを見つけ、未来の視点で今日の選択を考える。</p>
+          <div className="tw-journey" aria-label="同じ問いを過去と未来へ">
+            {identity && !identity.enabled && <button className="tw-demo-start" onClick={() => { viewerRef.current = "keitaro"; setPosts([]); setLoading(true); setMe("keitaro"); setFilter("keitaro"); setGuidedPost(null); }} disabled={me === "keitaro"}>{me === "keitaro" ? "けいたろうのサンプルを選択中" : "けいたろうのサンプルで比べる"}</button>}
+            <p>「{SHARED_QUESTION}」</p>
+            <div>
+              <button disabled={loading || !posts.some((p) => !p.locked && !p.replyTo && Date.parse(p.at) <= Date.parse(now))} onClick={startPast}><strong>1 · 過去に聞く</strong><span>当時までの記録で、あの頃の視点を再現</span></button>
+              <button onClick={() => { setDraft(SHARED_QUESTION); setFutureRequest((n) => n + 1); nowRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); document.getElementById("post-text")?.focus(); }}><strong>2 · 未来に聞く</strong><span>今までの記録で、これからの選択を考える</span></button>
+            </div>
+            <small>サンプルで試す場合は、投稿欄の「体験するユーザー」を選べます。AIの返事は再現・推定です。</small>
+          </div>
+          {pairReady && <section className="tw-comparison" id="compare-replies" aria-label="過去と未来の返事を比較">
+            <h2>同じ問い。違う時間の、ふたつの視点。</h2>
+            <div>
+              {[comparison.past!, comparison.future!].map((reply, index) => <article key={reply.id}>
+                <h3>{yearOf(reply.at)}年 · {index === 0 ? "当時の視点" : "未来の視点"}</h3>
+                <p>{reply.text}</p>
+                <SourceRecords reply={reply} records={posts} onReveal={revealPost} />
+              </article>)}
+            </div>
+            <p className="tw-help">どちらの言葉が、今のあなたに響きましたか。大切にしたいことをひとつ選んで、今日の小さな一歩へ。</p>
+            <button className="tw-next-step" onClick={() => { setDraft("今日の小さな一歩：\n\n大切にしたいこと："); setTodayRequest((n) => n + 1); nowRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); document.getElementById("post-text")?.focus(); }}>今日の一歩を自分の言葉で残す</button>
+          </section>}
         </section>
 
         <div className="tw-now" ref={nowRef} id="now">
@@ -166,7 +209,7 @@ export default function Timeline({ initialNow }: { initialNow: string }) {
               ? <form action="/auth/logout" method="post"><button type="submit">ログアウト</button></form>
               : <a href="/auth/login">Google でログイン</a>)}
           </div>
-          <FutureComposer initialDate={defaultFutureDate(initialNow)} text={draft} setText={setDraft} me={me} meName={meName} onPosted={onPosted} />
+          <FutureComposer todayRequest={todayRequest} futureRequest={futureRequest} initialDate={defaultFutureDate(initialNow)} text={draft} setText={setDraft} me={me} meName={meName} onPosted={onPosted} />
           <div className="row" style={{ marginTop: 10 }}>
             <label>
               {identity?.enabled ? "投稿者:" : "体験するユーザー:"}{" "}
@@ -234,7 +277,7 @@ export default function Timeline({ initialNow }: { initialNow: string }) {
         lastYear = y;
       }
       out.push(
-        <PostCard key={p.id} post={p} side={side} thread={threads.get(p.id) ?? []} me={me} meName={meName} onReplied={onReplied} />,
+        <PostCard key={p.id} post={p} side={side} thread={threads.get(p.id) ?? []} me={me} meName={meName} onReplied={onReplied} records={posts} onReveal={revealPost} guided={guidedPost?.id === p.id ? guidedPost.request : 0} />,
       );
     }
     return out;
@@ -244,6 +287,7 @@ export default function Timeline({ initialNow }: { initialNow: string }) {
 function PostCard(props: {
   post: Post; side: "future" | "past"; thread: Post[]; me: string; meName: string;
   onReplied: (human: Post, ai: Post, mode: Mode) => void;
+  records: Post[]; onReveal: (post: Post) => void; guided: number;
 }) {
   const { post, side, thread } = props;
   const [open, setOpen] = useState(false);
@@ -251,6 +295,7 @@ function PostCard(props: {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const canReply = side === "past" && !post.locked;
+  useEffect(() => { if (props.guided && canReply) { setOpen(true); setText(SHARED_QUESTION); } }, [props.guided, canReply]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -320,12 +365,26 @@ function PostCard(props: {
                 )}
               </div>
               <div>{r.locked ? lockedLabel(r) : r.text}</div>
+              {r.aiGenerated && !r.locked && <SourceRecords reply={r} records={props.records} onReveal={props.onReveal} /> }
             </div>
           ))}
         </div>
       )}
     </article>
   );
+}
+
+function SourceRecords({ reply, records, onReveal }: { reply: Post; records: Post[]; onReveal: (post: Post) => void }) {
+  const ids = reply.sourcePostIds;
+  if (!ids) return <p className="tw-source-note">以前の返答のため、参照記録の一覧は保存されていません。</p>;
+  const sources = ids.map((id) => records.find((p) => p.id === id)).filter((p): p is Post => Boolean(p && !p.locked));
+  return <details className="tw-sources">
+    <summary>{reply.aiMode === "mock" ? "モックに渡した記録" : "AIに渡した記録"} · {ids.length}件</summary>
+    <p>{reply.kind === "future" ? "生成時点までの公開履歴を参考にした、未来の視点の提案です。未来の出来事の予言ではありません。" : "この投稿の時点までの記録だけを渡しています。それ以降の出来事は含みません。"} すべてを引用したことを示す一覧ではありません。</p>
+    {ids.length === 0 && <p>過去の記録がないため、今回の問いだけで答えています。ユーザーを選ぶと、サンプルの履歴で体験できます。</p>}
+    {sources.map((p) => <button key={p.id} onClick={() => onReveal(p)}><span>{fmtAt(p.at)} · {p.authorName}</span><q>{p.text.slice(0, 180)}{p.text.length > 180 ? "…" : ""}</q></button>)}
+    {sources.length < ids.length && <p>現在閲覧できない記録は表示していません。</p>}
+  </details>;
 }
 
 function lockedLabel(post: Post): string {
@@ -335,10 +394,12 @@ function lockedLabel(post: Post): string {
   return post.visibility === "private" ? "🔒 非公開の思考" : "🔒 友人に公開された思考";
 }
 
-function FutureComposer(props: { initialDate: string; text: string; setText: (text: string) => void; me: string; meName: string; onPosted: (post: Post, ai: Post | null, mode: Mode) => void }) {
+function FutureComposer(props: { todayRequest: number; futureRequest: number; initialDate: string; text: string; setText: (text: string) => void; me: string; meName: string; onPosted: (post: Post, ai: Post | null, mode: Mode) => void }) {
   const [visibility, setVisibility] = useState<Visibility>("public");
   const [unlockYears, setUnlockYears] = useState(0);
   const [date, setDate] = useState(props.initialDate);
+  useEffect(() => { if (props.futureRequest) setDate(props.initialDate); }, [props.futureRequest, props.initialDate]);
+  useEffect(() => { if (props.todayRequest) setDate(new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date())); }, [props.todayRequest]);
   const { text, setText } = props;
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);

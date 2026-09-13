@@ -73,3 +73,10 @@ npm run deploy                              # opennextjs-cloudflare build && dep
 キーがない間はmockで操作できる。キーをチャット・ソースコード・wrangler.jsoncに貼らない。ローカルだけで試す場合は、gitignore対象の`.dev.vars`に同名を本人が設定し、ローカルサーバーを再起動する。本番のSecretとは別管理。
 
 根拠: [Cloudflare Secrets公式](https://developers.cloudflare.com/workers/configuration/secrets/)、[Claudeモデル一覧](https://platform.claude.com/docs/en/models/overview)。
+
+
+### 返答と元の記録を比べる
+
+ホームで「けいたろうのサンプルで比べる」を選び、同じ問いを「1 · 過去に聞く」「2 · 未来に聞く」の順で送信すると、2つの返答を並べて比較できます。返答の「AIに渡した記録」は、生成時に入力した記録の一覧です。引用の保証ではありません。元の投稿へ戻って確かめられます。
+
+`POST /api/reply` と未来宛ての `POST /api/post` の `aiReply` に `sourcePostIds: string[]` と `aiMode: "mock" | "live"` を保存。タイムラインでも取得できます。鍵付き返答は参照IDも伏せます。旧返答の一覧は未保存です。

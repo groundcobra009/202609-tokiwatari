@@ -200,3 +200,34 @@ input[type="date"], select { width: auto; }
   .tw-year { scroll-margin-top: 118px; }
 }
 .tw-now form > button[type="button"] { justify-self: start; padding: 5px 12px; min-height: 30px; border-color: #e3e6ea; }
+
+/* 同じ問いで時間ごとの視点を比べ、参照記録へ戻る */
+.tw-welcome h1 { font-size: clamp(20px, 3vw, 25px); line-height: 1.4; }
+.tw-journey { margin-top: 16px; }
+.tw-journey > p { font-size: 13px; font-weight: 500; margin: 0 0 10px; }
+.tw-journey > div { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.tw-journey button { text-align: left; background: #f3f8fe; border: 1px solid #dce9f7; border-radius: 12px; padding: 12px; color: var(--past); }
+.tw-journey button + button { background: #f7f4fb; border-color: #e8e0f1; color: var(--future); }
+.tw-journey strong { display: block; font-size: 14px; }
+.tw-journey span { display: block; font-size: 11px; margin-top: 5px; line-height: 1.6; }
+.tw-journey small { display: block; font-size: 11px; color: var(--muted); margin-top: 10px; line-height: 1.6; }
+.tw-sources { margin-top: 12px; border-top: 1px solid #ded8e6; padding-top: 10px; white-space: normal; }
+.tw-sources summary { font-size: 12px; color: var(--past); cursor: pointer; }
+.tw-sources p, .tw-source-note { font-size: 11px; color: var(--muted); line-height: 1.7; }
+.tw-sources button { display: block; width: 100%; text-align: left; background: #fff; border: 1px solid #e5e1eb; border-radius: 8px; padding: 10px; margin: 8px 0; }
+.tw-sources button span { display: block; font-size: 10px; color: var(--muted); margin-bottom: 4px; }
+.tw-sources q { font-size: 12px; line-height: 1.7; overflow-wrap: anywhere; }
+
+.tw-journey .tw-demo-start { margin-bottom: 12px; font-size: 11px; padding: 7px 12px; background: white; border-radius: 999px; }
+
+.tw-comparison { margin-top: 20px; scroll-margin-top: 88px; }
+.tw-comparison h2 { font-size: 17px; line-height: 1.5; }
+.tw-comparison > div { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tw-comparison article { padding: 14px; border: 1px solid #dce9f7; border-radius: 12px; min-width: 0; background: #f8fbff; }
+.tw-comparison article + article { background: #fbf9fe; border-color: #e8e0f1; }
+.tw-comparison h3 { font-size: 12px; color: var(--past); margin: 0; }
+.tw-comparison article + article h3 { color: var(--future); }
+.tw-comparison article > p { font-size: 13px; line-height: 1.8; white-space: pre-wrap; overflow-wrap: anywhere; }
+@media (max-width: 480px) { .tw-comparison > div { grid-template-columns: 1fr; } }
+
+.tw-next-step { border: 0; border-radius: 999px; padding: 10px 16px; background: var(--now); color: white; font-size: 12px; }

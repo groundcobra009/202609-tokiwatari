@@ -91,6 +91,8 @@ export const POST = withIdentity(async (req, user) => {
     kind: target.kind,
     replyTo: target.id,
     aiGenerated: true,
+    aiMode: generated.mode,
+    sourcePostIds: context.map((p) => p.id),
     createdAt: new Date().toISOString(),
   };
   await putPost(human);

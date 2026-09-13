@@ -78,6 +78,7 @@ async function main() {
   const ai = r.data.aiReply;
   if (!ai || ai.aiGenerated !== true) throw fail(`reply: aiGenerated が true でない ${JSON.stringify(ai)}`);
   if (ai.at !== target.at) throw fail(`reply: at が元投稿と一致しない ${ai.at} != ${target.at}`);
+  if (!ai.sourcePostIds?.includes(target.id) || ai.sourcePostIds.length !== r.data.contextCount || ai.aiMode !== r.data.mode) throw fail("past source metadata missing");
   if (ai.replyTo !== target.id || !ai.text) throw fail(`reply: replyTo/text が不正`);
   const mode = r.data.mode;
   log(`② 過去返信 OK: 対象=${target.id} (${target.at.slice(0, 10)}) 文脈=${r.data.contextCount}件 mode=${mode}`);
@@ -122,6 +123,7 @@ async function main() {
     const other = await find(saved.id, "shunta");
     const owner = await find(saved.id, "keitaro");
     if (!other || other.locked !== true || other.text !== "" || other.unlockAt !== futureAt) throw fail("時限公開の伏字が不正");
+    if (other.sourcePostIds !== undefined) throw fail("locked reply exposed source metadata");
     if (owner?.locked || owner?.text !== saved.text) throw fail("時限公開の本人表示が不正");
   }
   log("⑤ unlockAt OK: 他 viewer は locked＋本文空／本人は本文あり／AI返信にも継承");
@@ -174,11 +176,19 @@ async function main() {
   ]) {
     const result = await api("POST", "/api/reply", { postId, author, text: "当時何を考えていた？" });
     if (result.status !== 200 || result.data.contextCount !== count) throw fail(`時間境界/公開制御: ${postId} context=${result.data.contextCount}`);
+    const sourceIds = result.data.aiReply.sourcePostIds;
+    if (!Array.isArray(sourceIds) || sourceIds.length !== count || !sourceIds.includes(postId) || !sourceIds.includes(hint) || sourceIds.some((id) => id.startsWith("forbidden"))) throw fail("past source list violates time/access boundary");
+    if (JSON.stringify((await find(result.data.aiReply.id, author))?.sourcePostIds) !== JSON.stringify(sourceIds)) throw fail("source metadata not persisted");
     if (result.data.mode === "mock" && (!result.data.aiReply.text.includes(hint) || result.data.aiReply.text.includes("forbidden"))) throw fail("モックに未来/非公開文脈が混入");
   }
   const futureContext = await api("POST", "/api/post", { author: "first-test", text: "未来の自分へ", at: "2090-01-01T00:00:00Z" });
   const futureContextAgain = await api("POST", "/api/post", { author: "first-test", text: "もう一度未来へ", at: "2091-01-01T00:00:00Z" });
   if (futureContext.status !== 200 || futureContextAgain.status !== 200 || futureContext.data.historyCount !== 2 || futureContextAgain.data.historyCount !== 2) throw fail("未来宛て投稿を過去の実績として文脈に混入");
+  for (const result of [futureContext, futureContextAgain]) {
+    if (JSON.stringify(result.data.aiReply.sourcePostIds) !== JSON.stringify(["first-target", "forbidden-first-future"])) throw fail("future source list differs from supplied history");
+  }
+  const noHistory = await api("POST", "/api/post", { author: "no-history-test", text: "最初の一歩を考える", at: futureAt });
+  if (noHistory.status !== 200 || noHistory.data.aiReply.sourcePostIds?.length !== 0) throw fail("empty history represented incorrectly");
   log("⑧ AI文脈 OK: 時間境界・疎な履歴・初回投稿・非公開・他人・AI・未来宛ての除外");
 
   for (const endpoint of ["/api/post", "/api/reply"]) {
