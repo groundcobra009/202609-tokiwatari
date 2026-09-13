@@ -141,7 +141,8 @@ export default function Timeline({ initialNow }: { initialNow: string }) {
     setLastMode(mode);
     if (post.text === SHARED_QUESTION && ai) setComparison((prev) => ({ ...prev, future: ai }));
     setFilter("");
-    setFeed(Date.parse(post.at) > Date.parse(now) ? "future" : "past");
+    setNow(new Date(Math.max(Date.now(), post.kind === "future" ? 0 : Date.parse(post.at))).toISOString());
+    setFeed(post.kind === "future" ? "future" : "past");
     setTimeout(() => document.getElementById(`post-${post.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
   };
 
@@ -176,7 +177,7 @@ export default function Timeline({ initialNow }: { initialNow: string }) {
         <section className="tw-welcome" id="welcome">
           <h1>迷ったとき、時間を超えて自分と話す。</h1>
           <p className="tw-intro">新しい一歩に迷うあなたへ。昔の記録から大切にしていたことを見つけ、未来の視点で今日の選択を考える。</p>
-          <div className="tw-journey" aria-label="同じ問いを過去と未来へ">
+          <details className="tw-guide"><summary>使い方 · 過去と未来を比べてみる</summary><div className="tw-journey" aria-label="同じ問いを過去と未来へ">
             {identity && !identity.enabled && <button className="tw-demo-start" onClick={() => { viewerRef.current = "keitaro"; setPosts([]); setLoading(true); setMe("keitaro"); setFilter("keitaro"); setGuidedPost(null); }} disabled={me === "keitaro"}>{me === "keitaro" ? "けいたろうのサンプルを選択中" : "けいたろうのサンプルで比べる"}</button>}
             <p>「{SHARED_QUESTION}」</p>
             <div>
@@ -184,7 +185,7 @@ export default function Timeline({ initialNow }: { initialNow: string }) {
               <button onClick={() => { setDraft(SHARED_QUESTION); setFutureRequest((n) => n + 1); nowRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); document.getElementById("post-text")?.focus(); }}><strong>2 · 未来に聞く</strong><span>今までの記録で、これからの選択を考える</span></button>
             </div>
             <small>サンプルで試す場合は、投稿欄の「体験するユーザー」を選べます。AIの返事は再現・推定です。</small>
-          </div>
+          </div></details>
           {pairReady && <section className="tw-comparison" id="compare-replies" aria-label="過去と未来の返事を比較">
             <h2>同じ問い。違う時間の、ふたつの視点。</h2>
             <div>
@@ -210,7 +211,7 @@ export default function Timeline({ initialNow }: { initialNow: string }) {
               : <a href="/auth/login">Google でログイン</a>)}
           </div>
           <FutureComposer todayRequest={todayRequest} futureRequest={futureRequest} initialDate={defaultFutureDate(initialNow)} text={draft} setText={setDraft} me={me} meName={meName} onPosted={onPosted} />
-          <div className="row" style={{ marginTop: 10 }}>
+          <details className="tw-account-settings"><summary>投稿者：{meName}{!identity?.enabled && " · サンプルを変更"}</summary><div className="row">
             <label>
               {identity?.enabled ? "投稿者:" : "体験するユーザー:"}{" "}
               <select disabled={identity?.enabled ?? false} value={me} onChange={(e) => { viewerRef.current = e.target.value; setPosts([]); setLoading(true); setMe(e.target.value); }}>
@@ -218,20 +219,14 @@ export default function Timeline({ initialNow }: { initialNow: string }) {
                 {!identity?.enabled && authors.filter((a) => a.author !== "guest").map((a) => <option key={a.author} value={a.author}>{a.authorName}</option>)}
               </select>
             </label>
-            <label>
-              タイムライン:{" "}
-              <select value={filter} onChange={(e) => setFilter(e.target.value)}>
-                <option value="">全員</option>
-                {authors.map((a) => <option key={a.author} value={a.author}>{a.authorName}</option>)}
-              </select>
-            </label>
+
             {lastMode && (
               <span className={`tw-badge ${lastMode === "mock" ? "mock" : "human"}`}>
                 AI: {lastMode === "mock" ? "モック応答" : "Claude"}
               </span>
             )}
-            {error && <span className="tw-error">{error}</span>}
-          </div>
+          </div></details>
+          {error && <p className="tw-error" role="alert">{error}</p>}
         </div>
 
         <details className="tw-tools">
@@ -247,6 +242,7 @@ export default function Timeline({ initialNow }: { initialNow: string }) {
           <span className="tw-demo-tag">DEMO</span>
           <div><strong>3人の手書きサンプルで体験中</strong><p>実際のSNSから取り込んだ投稿ではありません。</p></div>
         </aside>}
+        <div className="tw-feed-filter"><label>表示する投稿 <select value={filter} onChange={(e) => setFilter(e.target.value)}><option value="">全員</option>{authors.map((a) => <option key={a.author} value={a.author}>{a.authorName}</option>)}</select></label></div>
         <nav className="tw-feed-tabs" id="feed" aria-label="時間の切替">
           <button aria-pressed={feed === "past"} onClick={() => setFeed("past")}>過去と今</button>
           <button aria-pressed={feed === "future"} onClick={() => setFeed("future")}>未来</button>
@@ -395,12 +391,13 @@ function lockedLabel(post: Post): string {
 }
 
 function FutureComposer(props: { todayRequest: number; futureRequest: number; initialDate: string; text: string; setText: (text: string) => void; me: string; meName: string; onPosted: (post: Post, ai: Post | null, mode: Mode) => void }) {
+  const [intent, setIntent] = useState<"now" | "future">("now");
   const [visibility, setVisibility] = useState<Visibility>("public");
   const [unlockYears, setUnlockYears] = useState(0);
   const [date, setDate] = useState(props.initialDate);
-  useEffect(() => { if (props.futureRequest) setDate(props.initialDate); }, [props.futureRequest, props.initialDate]);
-  useEffect(() => { if (props.todayRequest) setDate(new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date())); }, [props.todayRequest]);
-  const isFutureDate = Date.parse(`${date}T09:00:00+09:00`) > Date.now();
+  useEffect(() => { if (props.futureRequest) { setIntent("future"); setDate(props.initialDate); } }, [props.futureRequest, props.initialDate]);
+  useEffect(() => { if (props.todayRequest) setIntent("now"); }, [props.todayRequest]);
+  const isFutureDate = intent === "future";
   const { text, setText } = props;
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -413,7 +410,8 @@ function FutureComposer(props: { todayRequest: number; futureRequest: number; in
       const unlock = new Date();
       unlock.setUTCFullYear(unlock.getUTCFullYear() + unlockYears);
       const unlockAt = unlockYears ? unlock.toISOString() : undefined;
-      const at = new Date(`${date}T09:00:00+09:00`).toISOString();
+      const at = intent === "future" ? new Date(`${date}T09:00:00+09:00`).toISOString() : undefined;
+      if (at && Date.parse(at) <= Date.now()) throw new Error("未来の日付を選んでください。今の思いを残す場合は「今の記録」を選べます。");
       const res = await fetch("/api/post", {
         method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({ author: props.me, authorName: props.meName, text, at, visibility, unlockAt }),
@@ -430,23 +428,39 @@ function FutureComposer(props: { todayRequest: number; futureRequest: number; in
     }
   };
 
+  const accessLabel = visibility === "private" ? "自分だけ" : `${visibility === "friends" ? "友人に公開" : "全員に公開"}${unlockYears ? ` · ${unlockYears}年後から` : " · 今すぐ"}`;
   return (
-    <form onSubmit={submit}>
-      <button type="button" disabled={busy} onClick={() => setText("今、新しいことを始めるか迷っている。10年後の自分なら、この一歩をどう考える？")}>未来への質問例を入れる</button>
-      <textarea maxLength={2000} id="post-text" aria-label="投稿本文" value={text} onChange={(e) => setText(e.target.value)} placeholder="未来の自分へ。いま考えていること、迷っていること…" disabled={busy} />
-      <div className="row">
-        <label>公開範囲: <select value={visibility} onChange={(e) => setVisibility(e.target.value as Visibility)} disabled={busy}>
-          <option value="public">公開</option><option value="friends">友人</option><option value="private">非公開</option>
-        </select></label>
-        <label>公開時期: <select value={unlockYears} onChange={(e) => setUnlockYears(Number(e.target.value))} disabled={busy}>
-          <option value={0}>今すぐ</option>
-          {[1, 3, 5, 10].map((y) => <option key={y} value={y}>{y}年後に公開</option>)}
-        </select></label>
-        <label>宛先の日付: <input type="date" value={date} onChange={(e) => setDate(e.target.value)} disabled={busy} /></label>
-        <button className="primary" type="submit" disabled={busy || !text.trim()}>{busy ? (isFutureDate ? "未来の自分を推定中…" : "記録を保存中…") : "この日時に投稿"}</button>
-        {busy && isFutureDate && <span className="tw-thinking">{yearOf(`${date}T00:00:00+09:00`)}年の{props.meName}から返事を待っています</span>}
-        {err && <span className="tw-error" role="alert">{err}</span>}
+    <form className="tw-composer" onSubmit={submit}>
+      <div className="tw-compose-intent" aria-label="投稿の種類">
+        <button type="button" aria-pressed={intent === "now"} disabled={busy} onClick={() => setIntent("now")}>今の記録</button>
+        <button type="button" aria-pressed={intent === "future"} disabled={busy} onClick={() => setIntent("future")}>未来の自分に聞く</button>
       </div>
+      <textarea maxLength={2000} id="post-text" aria-label="投稿本文" value={text} onChange={(e) => setText(e.target.value)} placeholder={isFutureDate ? "未来の自分に聞きたいことは？" : "いま、何を考えていますか？"} disabled={busy} />
+      {isFutureDate && <div className="tw-future-options">
+        <details>
+          <summary>{date ? `${yearOf(`${date}T09:00:00+09:00`)}年の自分に聞く` : "話しかける日付を選ぶ"} · 変更</summary>
+          <label>どの時点の自分に聞く？ <input type="date" required value={date} onChange={(e) => setDate(e.target.value)} disabled={busy} /></label>
+        </details>
+        <p>その年の視点を想像したAIの返事が、今すぐ届きます。</p>
+        <button type="button" disabled={busy} onClick={() => setText("今、新しいことを始めるか迷っている。10年後の自分なら、この一歩をどう考える？")}>質問例を入れる</button>
+      </div>}
+      <div className="tw-compose-bottom">
+        <details className="tw-publish-settings">
+          <summary>公開設定 · {accessLabel}</summary>
+          <div>
+            <label>誰に見せる？ <select value={visibility} onChange={(e) => setVisibility(e.target.value as Visibility)} disabled={busy}>
+              <option value="public">全員</option><option value="friends">友人（デモ）</option><option value="private">自分だけ</option>
+            </select></label>
+            {visibility !== "private" && <label>他の人に見せるのは？ <select value={unlockYears} onChange={(e) => setUnlockYears(Number(e.target.value))} disabled={busy}>
+              <option value={0}>今すぐ</option>{[1,3,5,10].map((y) => <option key={y} value={y}>{y}年後から</option>)}
+            </select></label>}
+            <p>{visibility === "private" ? "あなたが選択しているユーザーだけが本文を読めます。ゲストは共有デモです。" : "指定した時期まで、他の人には鍵付きの表示だけが見えます。"}{isFutureDate && " AIの返事が届くタイミングは変わりません。"}</p>
+          </div>
+        </details>
+        <button className="primary" type="submit" disabled={busy || !text.trim()}>{busy ? (isFutureDate ? "返事を考えています…" : "保存中…") : isFutureDate ? "未来の自分に聞く" : "投稿する"}</button>
+      </div>
+      {busy && <p className="tw-thinking" role="status">{isFutureDate ? "これまでの記録から、未来の視点を考えています" : "記録を保存しています"}</p>}
+      {err && <p className="tw-error" role="alert">{err}</p>}
     </form>
   );
 }
